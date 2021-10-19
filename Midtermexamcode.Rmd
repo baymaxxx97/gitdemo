@@ -49,3 +49,11 @@ points(M,
 
 
 ```
+
+#Add code to determine the man height in females and males
+```{r}
+mean(BRFSS2017[which(BRFSS2017$SEX=='Male'),] $ht_meters)
+mean(BRFSS2017[which(BRFSS2017$SEX=='Female'),] $ht_meters)
+#Male [1] 1.781877
+#female [1] 1.631247
+```
