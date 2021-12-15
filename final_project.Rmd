@@ -1,0 +1,289 @@
+---
+title: "Final Project"
+author: "Qiyun Huang"
+date: "2021/12/2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE,
+                      include = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      results = "asis")
+```
+
+#Loading pacakge
+```{r }
+pacman::p_load(tidyverse, ROCR, odds.n.ends, blorr, lmtest, car, summarytools, table1)
+```
+
+
+#importing data
+```{r}
+#yrbss2019 is the name of data frame I created in R, and yrbs2019.sav is the file name of SPSS dataset I want to import.
+#use.value.label=TRUE to convert variables with value labels in SPSS into R factors.
+#to.data.frame=TRUE to make as data frame.
+yrbss2019 <- read.csv("https://raw.githubusercontent.com/baymaxxx97/gitdemo/main/yrbs2019.csv")
+```
+
+
+#Creating a smaller dataframe which only include the my data of interests
+```{r}
+yrbss2019_project <- yrbss2019[,c(1:2, 78,88,95,227,228,233)]
+```
+
+#Data management for variables used in this project (Q1,Q2,Q3,Q4,Q6,Q78,Q88,Q95, RACEETH)
+```{r}
+##provide names for variables
+names(yrbss2019_project)<-c("age", "gender", "PA", "sleep_duration", "mus_stren", "obese","overweight", "race")
+
+
+## Recode recode sleep duration into a binary variable – Sleep Deprivation
+freq(yrbss2019_project$sleep_duration) ###cheking the varible frequency
+yrbss2019_project$sleep_deprive <- ifelse(yrbss2019_project$sleep_duration == "7 hours" |
+                                          yrbss2019_project$sleep_duration == "6 hours" |
+                                          yrbss2019_project$sleep_duration == "5 hours" |
+                                          yrbss2019_project$sleep_duration == "4 or less hours" , 1, 
+                                   ifelse(yrbss2019_project$sleep_duration == "8 hours" |
+                                          yrbss2019_project$sleep_duration == "9 hours" |
+                                          yrbss2019_project$sleep_duration == "10 or more hours", 0, NA))
+#lable binary variable sleep_deprive
+yrbss2019_project$sleep_deprive <- ordered(yrbss2019_project$sleep_deprive,
+levels = c(0, 1),
+labels = c("Not Depreived", "Depreived Sleep"))
+
+freq(yrbss2019_project$sleep_deprive) ###cheking the varible frequency
+
+##check to make sure re-classification worked
+table(yrbss2019_project$sleep_deprive, yrbss2019_project$sleep_duration)
+
+
+## Age (Q1), Sex (Q2), and BMI are used to determine Overweight* (QNOWT), and Obese* (QNOBESE). The student is considered overweight, and QNOWT is set to “1”, when BMI percentile is at or above the 85th percentile and below the 95th        percentile for BMI by age and sex. The student is considered obese, and QNOBESE is set to “1”, when BMI percentile is at or above the 95th percentile for BMI by age and sex. If BMI is missing, then QNOWT and QNOBESE are set to missing. QNOWT and QNOBESE are mutually exclusive. The BMI percentile for age and sex (BMIPCT), QNOWT, and QNOBESE variables are included in the edited data set.
+
+## Recode 1 into "Overweight/Obese" 0 into "not overweitht/not obese"
+yrbss2019_project$obese_new <- ifelse(yrbss2019_project$obese == 1, 1,0)
+yrbss2019_project$overweight_new <- ifelse(yrbss2019_project$overweight == 1, 1, 0)                         
+
+#lable binary variable obese_new
+yrbss2019_project$obese_new <- ordered(yrbss2019_project$obese_new,
+levels = c(0, 1),
+labels = c("Not Obese", "Obese"))
+
+#lable binary variable overweight_new
+yrbss2019_project$overweight_new <- ordered(yrbss2019_project$overweight_new,
+levels = c(0, 1),
+labels = c("Not Overweight", "Overweight"))
+
+freq(yrbss2019_project$obese_new)
+freq(yrbss2019_project$overweight_new)
+
+##Checking frequency and class for variable PA and mus_stren
+freq(yrbss2019_project$PA)
+class(yrbss2019_project$PA)
+freq(yrbss2019_project$mus_stren)
+class(yrbss2019_project$mus_stren)
+
+
+# exclude missing data
+yrbss2019_project[yrbss2019_project == "Missing"] <- NA
+```
+
+#Creating Table 1
+```{r}
+#Addinf lables
+label(yrbss2019_project$age)<-"Age (years)"
+label(yrbss2019_project$gender)<-"Sex"
+label(yrbss2019_project$race)<-"Race"
+label(yrbss2019_project$PA)<-"Physical Activity"
+label(yrbss2019_project$mus_stren)<-"Muscle Strengthening"
+label(yrbss2019_project$obese_new)<-"Obese"
+label(yrbss2019_project$overweight_new)<-"Overweight"
+
+table1(~age + gender + race+ PA + mus_stren + obese_new + overweight_new |sleep_deprive, overall="Total",  rowlabelhead="Variable", footnote='SD = standard deviation', yrbss2019_project)
+```
+
+# Table 1 Interpretation
+###Age: A higher percentage of those who were not sleep deprived were among 15 years old than those who were sleep deprived(24.3 vs 28.8%). The opposite pattern was observed for those who were 17 years old with a lower percentage reported with no deprived sleep vs having deprived sleep (18.1% vs 24.0%).
+
+###Gender: A higher percentage of individuals who were sleep deprived were females than those who were not sleep deprived (52.1% vs 46.2%). The opposite pattern was observed for males with a lower percentage reported with deprived sleep vs not having deprived sleep (46.8% vs 52.9%).
+
+###Race: A higher percentage of those who were sleep deprived were Asian than those who were not deprived (4.9% vs 3.4%). The opposite pattern was observed for Non-Hispanic Whites with a lower percentage being reported as sleep deprived vs.not deprived (48.7% vs 52.5%).
+
+###Grades: A higher percentage of those who were sleep deprived were 11th grade & 12th grade vs. those who reported not deprived (25.2%, 22.7% vs 21.0%, 15.7%). Conversely, a higher percentage of those with no deprived sleep at 10th grade vs those have deprived sleep (28.8% vs 26.6%)
+
+
+# Unajusted Logistic model for Physical activity
+```{r}
+#logistic model with bmi as a predictor
+PA_Logit <- glm(sleep_deprive ~ PA, data=yrbss2019_project, family="binomial")
+summary(PA_Logit)
+
+#calculate and print ORs and 95% CIs  
+ORPA<-exp(cbind(OR = coef(PA_Logit), confint(PA_Logit))) #calculate ORs and 95% CIs
+ORPA #print ORs and 95% CIs
+```
+Interpretation
+Based on the unajusted model results:
+The odds of having deprived sleep for participants with who participated in 7 days of physical activity a week are 48% less likelly the odds than those who do not participated in physical activity in a week. 
+
+The odds of having deprived sleep for participants with who participated in 6 days of physical activity a week are 37% less likelly the odds than those who do not participated in physical activity in a week. 
+
+The odds of having deprived sleep for participants with who participated in 5 days of physical activity a week are 27% less likelly the odds than those who do not participated in physical activity in a week. 
+
+The odds of having deprived sleep for participants with who participated in 4 days of physical activity a week are 22% less likelly the odds than those who do not participated in physical activity in a week. 
+
+The odds of having deprived sleep for participants with who participated in 3 days of physical activity a week are 16% less likelly the odds than those who do not participated in physical activity in a week. 
+
+The odds of having deprived sleep for participants with who participated in 2 days of physical activity a week are 16% less likelly the odds than those who do not participated in physical activity in a week. 
+
+“testing for multicollinearity are not necessary because we only have one predictor”
+
+##Multivariate model with sleep deprivation as the dependent variable and Physical Activity as the independent variables
+```{r}
+#income and bmi cat logistic model
+PALogit_multi <- glm(sleep_deprive ~ age + gender +race + PA, data=yrbss2019_project, family="binomial")
+summary(PALogit_multi)
+
+#calculate and print ORs and 95% CIs  
+ORmodel<-exp(cbind(OR = coef(PALogit_multi), confint(PALogit_multi))) #calculate ORs and 95% CIs
+ORmodel #print ORs and 95% CIs
+
+odds.n.ends(PALogit_multi)
+```
+
+## Look at assumptions of multicollinearity and influence
+
+*Multicollinearity*
+```{r}
+#Variance Inflation Factors
+vif(PALogit_multi)
+```
+#Cook's D plot
+```{r}
+plot(PALogit_multi, which=4, id.n=5, col="red") 
+```
+
+*Influence*
+```{r}
+#Cutoff: F(0.5, p, n-p), 4/n, 4/(n-p-1), n is the number of observations, p is the number of  coefficients
+cutoff <- 0.0015 
+
+#identify observations with a Cook's Distance greater than cutoff
+obs_no <- as.data.frame(cooks.distance(PALogit_multi)) %>%
+  mutate(obs_no=row_number()) %>%
+  filter(`cooks.distance(PALogit_multi)` > cutoff)
+
+#Let's exclude the values shown in the Cook's D plot, and see how the models compare.
+
+PALogit_multi.modex <- update(PALogit_multi,subset=c(-obs_no$obs_no))
+summary(PALogit_multi.modex)
+
+#compare coefficients between models with and without influential observations, #caveat model number of observations is not the same
+compareCoefs(PALogit_multi, PA_Logit) 
+```
+
+
+## Model fit of the full model
+```{r}
+#Various pseudo R squares, log likelihood, deviance, AIC, BIC
+blr_model_fit_stats(PALogit_multi)
+
+#Hosmer lemeshow goodness of fit test: a significant p value indicates a bad fit
+blr_test_hosmer_lemeshow(PALogit_multi)
+```
+Based on the model results form PALogit_multi, we can conclude that after adjusting for age, gender, race and exclude the potential outliers are still statistically significant risk factors for sleep deprivation. 
+
+
+#Unajusted Logistic model for Muscle Strength
+```{r}
+#income and bmi cat logistic model
+MULogit <- glm(sleep_deprive ~ mus_stren, data=yrbss2019_project, family="binomial")
+summary(MULogit)
+
+#calculate and print ORs and 95% CIs  
+ORmodel<-exp(cbind(OR = coef(MULogit), confint(MULogit))) #calculate ORs and 95% CIs
+ORmodel #print ORs and 95% CIs
+
+odds.n.ends(MULogit)
+```
+
+##Multivariate model with sleep deprivation as the dependent variable and muscle strengthening the independent variables
+
+```{r}
+#income and bmi cat logistic model
+MULogit_multi <- glm(sleep_deprive ~ age + gender +race + mus_stren, data=yrbss2019_project, family="binomial")
+summary(MULogit_multi)
+
+#calculate and print ORs and 95% CIs  
+ORmodel<-exp(cbind(OR = coef(MULogit_multi), confint(MULogit_multi))) #calculate ORs and 95% CIs
+ORmodel #print ORs and 95% CIs
+
+odds.n.ends(MULogit_multi)
+```
+## Look at assumptions of multicollinearity and influence
+
+*Multicollinearity*
+```{r}
+#Variance Inflation Factors
+vif(MULogit_multi)
+```
+#Cook's D plot
+```{r}
+plot(MULogit_multi, which=4, id.n=5, col="red") 
+```
+
+*Influence*
+```{r}
+#Cutoff: F(0.5, p, n-p), 4/n, 4/(n-p-1), n is the number of observations, p is the number of  coefficients
+cutoff <- 0.0015 
+
+#identify observations with a Cook's Distance greater than cutoff
+obs_no <- as.data.frame(cooks.distance(MULogit_multi)) %>%
+  mutate(obs_no=row_number()) %>%
+  filter(`cooks.distance(MULogit_multi)` > cutoff)
+
+#Let's exclude the values shown in the Cook's D plot, and see how the models compare.
+
+MULogit_multi.modex <- update(MULogit_multi,subset=c(-obs_no$obs_no))
+summary(MULogit_multi.modex)
+
+#compare coefficients between models with and without influential observations, #caveat model number of observations is not the same
+compareCoefs(MULogit_multi, MULogit) 
+```
+
+
+Did removing influential data affect the coefficients?
+
+Answer: from the comparison results above, we can conclude that removing influential data largely affect the coefficients.
+
+## Model fit of the full model
+```{r}
+#Various pseudo R squares, log likelihood, deviance, AIC, BIC
+blr_model_fit_stats(MULogit_multi)
+
+#Hosmer lemeshow goodness of fit test: a significant p value indicates a bad fit
+blr_test_hosmer_lemeshow(MULogit_multi)
+```
+
+
+
+#testing effect modification
+```{r}
+Slp_PA_OBEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new)+overweight_new+(PA*overweight_new), data=yrbss2019_project, family="binomial")
+Slp_PA_OBLogit<-glm(sleep_deprive ~ PA+obese_new+overweight_new, data=yrbss2019_project, family="binomial")
+#likilihood ratio test: compare two  models
+lrtest(Slp_PA_OBEM, Slp_PA_OBLogit)
+
+Slp_PA_ObeEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new), data=yrbss2019_project, family="binomial")
+Slp_PA_ObeLogit<-glm(sleep_deprive ~ PA+obese_new, data=yrbss2019_project, family="binomial")
+#likilihood ratio test: compare two  models
+lrtest(Slp_PA_OBEM, Slp_PA_ObeLogit)
+
+Slp_PA_OEM<- glm(sleep_deprive ~ PA+overweight_new+(PA*overweight_new), data=yrbss2019_project, family="binomial")
+Slp_PA_OLogit<-glm(sleep_deprive ~ PA+overweight_new, data=yrbss2019_project, family="binomial")
+#likilihood ratio test: compare two  models
+lrtest(Slp_PA_OEM, Slp_PA_OLogit)
+```
+The LR testing results shows that obese or overweight are not significant. Thus, we can exlude Effect Modification of obese/overweight out of our analysis.
