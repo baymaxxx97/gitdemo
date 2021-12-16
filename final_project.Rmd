@@ -6,12 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-
-knitr::opts_chunk$set(echo = TRUE,
-                      include = TRUE,
-                      message = FALSE,
-                      warning = FALSE,
-                      results = "asis")
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 ```
 
 #Loading pacakge
@@ -88,62 +83,43 @@ class(yrbss2019_project$mus_stren)
 
 # exclude missing data
 yrbss2019_project[yrbss2019_project == "Missing"] <- NA
+yrbs_omit<-na.omit(yrbss2019_project)
 ```
 
 #Creating Table 1
 ```{r}
 #Addinf lables
-label(yrbss2019_project$age)<-"Age (years)"
-label(yrbss2019_project$gender)<-"Sex"
-label(yrbss2019_project$race)<-"Race"
-label(yrbss2019_project$PA)<-"Physical Activity"
-label(yrbss2019_project$mus_stren)<-"Muscle Strengthening"
-label(yrbss2019_project$obese_new)<-"Obese"
-label(yrbss2019_project$overweight_new)<-"Overweight"
+label(yrbs_omit$age)<-"Age (years)"
+label(yrbs_omit$gender)<-"Sex"
+label(yrbs_omit$race)<-"Race"
+label(yrbs_omit$PA)<-"Physical Activity"
+label(yrbs_omit$mus_stren)<-"Muscle Strengthening"
+label(yrbs_omit$obese_new)<-"Obese"
+label(yrbs_omit$overweight_new)<-"Overweight"
 
-table1(~age + gender + race+ PA + mus_stren + obese_new + overweight_new |sleep_deprive, overall="Total",  rowlabelhead="Variable", footnote='SD = standard deviation', yrbss2019_project)
+table1(~age + gender + race+ PA + mus_stren + obese_new + overweight_new |sleep_deprive, overall="Total",  rowlabelhead="Variable", footnote='SD = standard deviation', yrbs_omit)
 ```
 
-# Table 1 Interpretation
-###Age: A higher percentage of those who were not sleep deprived were among 15 years old than those who were sleep deprived(24.3 vs 28.8%). The opposite pattern was observed for those who were 17 years old with a lower percentage reported with no deprived sleep vs having deprived sleep (18.1% vs 24.0%).
 
-###Gender: A higher percentage of individuals who were sleep deprived were females than those who were not sleep deprived (52.1% vs 46.2%). The opposite pattern was observed for males with a lower percentage reported with deprived sleep vs not having deprived sleep (46.8% vs 52.9%).
-
-###Race: A higher percentage of those who were sleep deprived were Asian than those who were not deprived (4.9% vs 3.4%). The opposite pattern was observed for Non-Hispanic Whites with a lower percentage being reported as sleep deprived vs.not deprived (48.7% vs 52.5%).
-
-###Grades: A higher percentage of those who were sleep deprived were 11th grade & 12th grade vs. those who reported not deprived (25.2%, 22.7% vs 21.0%, 15.7%). Conversely, a higher percentage of those with no deprived sleep at 10th grade vs those have deprived sleep (28.8% vs 26.6%)
 
 
 # Unajusted Logistic model for Physical activity
 ```{r}
 #logistic model with bmi as a predictor
-PA_Logit <- glm(sleep_deprive ~ PA, data=yrbss2019_project, family="binomial")
+PA_Logit <- glm(sleep_deprive ~ PA, data=yrbs_omit, family="binomial")
 summary(PA_Logit)
 
 #calculate and print ORs and 95% CIs  
 ORPA<-exp(cbind(OR = coef(PA_Logit), confint(PA_Logit))) #calculate ORs and 95% CIs
 ORPA #print ORs and 95% CIs
 ```
-Interpretation
-Based on the unajusted model results:
-The odds of having deprived sleep for participants with who participated in 7 days of physical activity a week are 48% less likelly the odds than those who do not participated in physical activity in a week. 
-
-The odds of having deprived sleep for participants with who participated in 6 days of physical activity a week are 37% less likelly the odds than those who do not participated in physical activity in a week. 
-
-The odds of having deprived sleep for participants with who participated in 5 days of physical activity a week are 27% less likelly the odds than those who do not participated in physical activity in a week. 
-
-The odds of having deprived sleep for participants with who participated in 4 days of physical activity a week are 22% less likelly the odds than those who do not participated in physical activity in a week. 
-
-The odds of having deprived sleep for participants with who participated in 3 days of physical activity a week are 16% less likelly the odds than those who do not participated in physical activity in a week. 
-
-The odds of having deprived sleep for participants with who participated in 2 days of physical activity a week are 16% less likelly the odds than those who do not participated in physical activity in a week. 
 
 “testing for multicollinearity are not necessary because we only have one predictor”
 
 ##Multivariate model with sleep deprivation as the dependent variable and Physical Activity as the independent variables
 ```{r}
 #income and bmi cat logistic model
-PALogit_multi <- glm(sleep_deprive ~ age + gender +race + PA, data=yrbss2019_project, family="binomial")
+PALogit_multi <- glm(sleep_deprive ~ age + gender +race + PA, data=yrbs_omit, family="binomial")
 summary(PALogit_multi)
 
 #calculate and print ORs and 95% CIs  
@@ -199,7 +175,7 @@ Based on the model results form PALogit_multi, we can conclude that after adjust
 #Unajusted Logistic model for Muscle Strength
 ```{r}
 #income and bmi cat logistic model
-MULogit <- glm(sleep_deprive ~ mus_stren, data=yrbss2019_project, family="binomial")
+MULogit <- glm(sleep_deprive ~ mus_stren, data=yrbs_omit, family="binomial")
 summary(MULogit)
 
 #calculate and print ORs and 95% CIs  
@@ -213,7 +189,7 @@ odds.n.ends(MULogit)
 
 ```{r}
 #income and bmi cat logistic model
-MULogit_multi <- glm(sleep_deprive ~ age + gender +race + mus_stren, data=yrbss2019_project, family="binomial")
+MULogit_multi <- glm(sleep_deprive ~ age + gender +race + mus_stren, data=yrbs_omit, family="binomial")
 summary(MULogit_multi)
 
 #calculate and print ORs and 95% CIs  
@@ -271,18 +247,18 @@ blr_test_hosmer_lemeshow(MULogit_multi)
 
 #testing effect modification
 ```{r}
-Slp_PA_OBEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new)+overweight_new+(PA*overweight_new), data=yrbss2019_project, family="binomial")
-Slp_PA_OBLogit<-glm(sleep_deprive ~ PA+obese_new+overweight_new, data=yrbss2019_project, family="binomial")
+Slp_PA_OBEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new)+overweight_new+(PA*overweight_new), data=yrbs_omit, family="binomial")
+Slp_PA_OBLogit<-glm(sleep_deprive ~ PA+obese_new+overweight_new, data=yrbs_omit, family="binomial")
 #likilihood ratio test: compare two  models
 lrtest(Slp_PA_OBEM, Slp_PA_OBLogit)
 
-Slp_PA_ObeEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new), data=yrbss2019_project, family="binomial")
-Slp_PA_ObeLogit<-glm(sleep_deprive ~ PA+obese_new, data=yrbss2019_project, family="binomial")
+Slp_PA_ObeEM<- glm(sleep_deprive ~ PA+obese_new+(PA*obese_new), data=yrbs_omit, family="binomial")
+Slp_PA_ObeLogit<-glm(sleep_deprive ~ PA+obese_new, data=yrbs_omit, family="binomial")
 #likilihood ratio test: compare two  models
 lrtest(Slp_PA_OBEM, Slp_PA_ObeLogit)
 
-Slp_PA_OEM<- glm(sleep_deprive ~ PA+overweight_new+(PA*overweight_new), data=yrbss2019_project, family="binomial")
-Slp_PA_OLogit<-glm(sleep_deprive ~ PA+overweight_new, data=yrbss2019_project, family="binomial")
+Slp_PA_OEM<- glm(sleep_deprive ~ PA+overweight_new+(PA*overweight_new), data=yrbs_omit, family="binomial")
+Slp_PA_OLogit<-glm(sleep_deprive ~ PA+overweight_new, data=yrbs_omit, family="binomial")
 #likilihood ratio test: compare two  models
 lrtest(Slp_PA_OEM, Slp_PA_OLogit)
 ```
